@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bjnlmf.nerc.zhihu.mapper.QuestionMapper">
+    <sql id="Update_Set_Clause">
+        <set>
+            <trim suffixOverrides=",">
+                <if test="shieldingTitle != null">
+                    shieldingTitle = #{shieldingTitle},
+                </if>
+                <if test="questionTitle != null">
+                    questionTitle = #{questionTitle},
+                </if>
+                <if test="shieldingContent != null">
+                    shieldingContent = #{shieldingContent},
+                </if>
+                <if test="questionContent != null">
+                    questionContent = #{questionContent},
+                </if>
+            </trim>
+        </set>
+    </sql>
+    <sql id="Example_Where_Clause">
+    <where>
+        <trim prefix="(" prefixOverrides="and" suffix=")">
+
+        <if test="startDate != null and endDate != null and startDate !='' and endDate !=''">
+            AND p.createTime > #{startDate} AND p.createTime &lt; #{endDate}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND p.createTime > #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND p.createTime &lt; #{endDate}
+        </if>
+        <if test="parentId != null">
+            and t.parentid = #{parentId}
+        </if>
+        <if test="questionTypeId != null">
+            AND p.questionTypeID = #{questionTypeId}
+        </if>
+        <if test="answerState == 1">
+            AND p.answerNum > 0
+            AND p.deleted = 0
+        </if>
+        <if test="answerState == 0">
+            AND p.answerNum = 0
+            AND p.deleted = 0
+        </if>
+        <if test="answerState == 2">
+            AND p.deleted = 1
+        </if>
+        <if test="answerState == 2">
+            AND p.deleted = 1
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (p.questionTitle LIKE #{keyword} or a.phone like #{keyword} )
+        </if>
+
+
+    </trim>
+    </where>
+</sql>
+
+    <select id="queryQuestionCount" resultType="java.lang.Integer">
+        select count(id)
+        from nerc_question
+        WHERE deleted = 0
+        <if test="answerState == 1">
+            AND answerNum > 0
+        </if>
+        <if test="answerState == -1">
+            AND answerNum = 0
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND questionTitle LIKE #{keyword}
+        </if>
+        <if test="ids != null and ids != ''">
+            AND questionTypeID IN (${ids})
+        </if>
+    </select>
+    <select id="queryQuestionList" resultType="com.bjnlmf.nerc.zhihu.pojo.question.QuestionVO">
+        select id,userID,questionTitle,questionTypeID,answerNum,readNum,createTime,provinceCode,cityCode,countyCode
+        from nerc_question
+        WHERE deleted = 0
+        <if test="answerState == 1">
+            AND answerNum > 0
+        </if>
+        <if test="answerState == -1">
+            AND answerNum = 0
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND questionTitle LIKE #{keyword}
+        </if>
+        <if test="ids != null and ids != ''">
+            AND questionTypeID IN (${ids})
+        </if>
+        <if test='sortField == "createTime"'>
+            ORDER By createTime
+        </if>
+        <if test='sortField == "hot"'>
+            ORDER By answerNum DESC,readNum DESC,createTime DESC
+        </if>
+        <if test="sortOrder == 0">
+            DESC
+        </if>
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+    <update id="shielding" parameterType="com.bjnlmf.nerc.zhihu.pojo.question.QuestionObjectDO">
+        update nerc_question
+            <include refid="Update_Set_Clause"/>
+        where id = #{id}
+
+    </update>
+
+    <!--管理员根据问题类型 问题状态 开始时间 结束时间 是否有图 模糊查询-->
+    <select id="queryAdminQuestionCount" resultType="java.lang.Integer">
+        select count(*) from (select count(p.id)
+        from nerc_question p
+        LEFT JOIN sys_images i
+        ON p.id = i.relationId
+        left join acc_user a on p.userId = a.userId
+        left join conf_quest_type t on t.id = p.questionTypeId
+        <include refid="Example_Where_Clause"/>
+        GROUP BY p.id
+        <if test="weatherThumb != null and weatherThumb == true">
+            having COUNT(i.id)>0
+        </if>
+        <if test="!weatherThumb != null and weatherThumb ==false">
+            having COUNT(i.id)=0
+        </if>
+
+        ) c
+
+
+    </select>
+
+
+    <!--管理员查询所有提问数据-->
+    <select id="queryAdminQuestionList"  resultType="com.bjnlmf.nerc.zhihu.pojo.question.QuestionVO">
+      select p.id,p.userID,p.questionTitle,p.questionContent,p.questionTypeID,p.answerNum,p.readNum,p.createTime,a.phone,
+        case p.deleted when 1 then '已删除' else case p.answerNum when 0 then '未回答' else '已回答' end end as answerState,
+        case count(i.id) when 0 then FALSE else TRUE end as images
+      from nerc_question p
+      LEFT  JOIN  sys_images i
+      ON p.id = i.relationId
+        LEFT JOIN acc_user a on p.userid=a.userid
+        left join conf_quest_type t on t.id = p.questionTypeId
+        <include refid="Example_Where_Clause" />
+      GROUP BY p.id
+        <if test="weatherThumb != null and weatherThumb == true">
+            having COUNT(i.id)>0
+        </if>
+        <if test="!weatherThumb != null and weatherThumb ==false">
+            having COUNT(i.id)=0
+        </if>
+        ORDER BY p.createTime
+        DESC
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+
+</mapper>

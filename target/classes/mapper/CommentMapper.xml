@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.bjnlmf.nerc.zhihu.mapper.CommentMapper">
+
+    <sql id="base_column">
+        nc.id,
+        nc.userID as userId,
+        nc.questionID,
+        nc.commentsContent,
+        nc.praise,
+        nc.commentsType,
+        nc.createTime,
+        nc.answerID,
+        ac.nickName,
+        ndr.commentsToId,
+        ndr.commentsToBody,
+        ndr.dialogToCommentId,
+        nc.shielding,
+    </sql>
+
+    <select id="queryCommentList" parameterType="com.bjnlmf.nerc.zhihu.pojo.comment.CommentDO" resultType="com.bjnlmf.nerc.zhihu.pojo.comment.CommentVO">
+        SELECT
+        <trim suffixOverrides=","><include refid="base_column"/></trim>
+        FROM nerc_comments nc
+        LEFT JOIN acc_user ac
+        ON ac.userID = nc.userID
+        LEFT JOIN nerc_dialogue_relation ndr
+        ON nc.id = ndr.commentID
+        WHERE nc.questionID = #{questionID}
+        AND nc.answerID = #{answerID}
+        AND nc.deleted = 0
+        <if test="shielding==null">
+            AND nc.shielding = 0
+        </if>
+        AND ac.deleted = 0
+        <if test="dateSort!=null and dateSort">
+            ORDER BY nc.createTime ASC
+        </if>
+        <if test="dateSort!=null and !dateSort">
+            ORDER BY nc.createTime DESC
+        </if>
+        <if test="heatSort!=null and heatSort">
+            ORDER BY nc.praise ASC, nc.createTime ASC
+        </if>
+        <if test="heatSort!=null and !heatSort">
+            ORDER BY nc.praise DESC, nc.createTime DESC
+        </if>
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+
+    <select id="dailogList" parameterType="com.bjnlmf.nerc.zhihu.pojo.comment.CommentVO" resultType="com.bjnlmf.nerc.zhihu.pojo.comment.CommentVO">
+        SELECT
+        <trim suffixOverrides=","><include refid="base_column"/></trim>
+        FROM nerc_comments nc
+        LEFT JOIN acc_user ac
+        ON ac.userID = nc.userID
+        LEFT JOIN nerc_dialogue_relation ndr
+        ON nc.id = ndr.commentID
+        WHERE nc.questionID = #{questionID}
+        AND nc.answerID = #{answerID}
+        AND nc.deleted = 0
+        AND ac.deleted = 0
+        AND
+        (
+            (nc.userID = #{userId} and commentsToId = #{commentsToId})
+            OR
+            (nc.userID = #{commentsToId} and commentsToId = #{userId})
+        )
+        AND dialogToCommentId = #{dialogToCommentId}
+        ORDER BY id ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bjnlmf.nerc.zhihu.mapper.UserManageMapper">
+
+    <select id="queryList" resultType="com.bjnlmf.nerc.zhihu.pojo.UserVO" parameterType="com.bjnlmf.nerc.zhihu.pojo.UserManageQuery">
+        select
+        a.id,a.userID,a.nickName,a.createTime,a.state,a.phone,
+        b.thumbnailPath AS imageHead
+        from acc_user a
+        LEFT JOIN sys_images b
+        ON a.userID = b.relationId
+        WHERE a.deleted = 0
+        <if test="userID != null">
+            AND a.userID = #{userID}
+        </if>
+        <if test="nickName != null">
+            AND (a.nickName like #{nickName} or a.userId like #{nickName} or a.phone like #{nickName})
+        </if>
+        <if test="state != null">
+            AND a.state = #{state}
+        </if>
+        <if test="startTimeStr != null and endTimeStr != null and startTimeStr != '' and endTimeStr != ''">
+            AND a.createTime > #{startTimeStr} AND a.createTime &lt; #{endTimeStr}
+        </if>
+        <if test="startTimeStr != null and startTimeStr != ''">
+            AND a.createTime > #{startTimeStr}
+        </if>
+        <if test="endTimeStr != null and endTimeStr != ''">
+            AND a.createTime &lt; #{endTimeStr}
+        </if>
+        ORDER BY a.createTime DESC, id DESC
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+    <select id="queryListCount" resultType="Integer">
+        select count(id)
+        from acc_user
+        WHERE deleted = 0
+        <if test="userID != null">
+            AND userID = #{userID}
+        </if>
+        <if test="nickName != null">
+            AND (nickName like #{nickName} or userId like #{nickName} or phone like #{nickName})
+        </if>
+        <if test="state != null">
+            AND state = #{state}
+        </if>
+        <if test="startTimeStr != null and endTimeStr != null and startTimeStr != '' and endTimeStr != ''">
+            AND createTime > #{startTimeStr} AND createTime &lt; #{endTimeStr}
+        </if>
+        <if test="startTimeStr != null and startTimeStr !=''">
+            AND createTime > #{startTimeStr}
+        </if>
+        <if test="endTimeStr != null and endTimeStr!=''">
+            AND createTime &lt; #{endTimeStr}
+        </if>
+        ORDER BY id DESC
+    </select>
+
+    <update id="updateState" parameterType="com.bjnlmf.nerc.zhihu.pojo.UserManageQuery">
+        update acc_user set state = #{state} where userID = #{userID}
+    </update>
+
+</mapper>

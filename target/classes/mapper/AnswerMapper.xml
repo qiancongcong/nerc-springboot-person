@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.bjnlmf.nerc.zhihu.mapper.AnswerMapper">
+    <sql id="Update_Set_Clause">
+        <set>
+            <trim suffixOverrides=",">
+                <if test="shielding != null">
+                    shielding = #{shielding},
+                </if>
+                <if test="answerContent != null">
+                    answerContent = #{answerContent},
+                </if>
+            </trim>
+        </set>
+    </sql>
+    <sql id="Example_Where_Clause">
+        <where>
+            <trim prefix="(" prefixOverrides="and" suffix=")">
+                <if test="questionID != null">
+                    questionId = #{questionID}
+                </if>
+                <if test="shielding != null">
+                    shielding = #{shielding},
+                </if>
+                <if test="shieldingAnswerContent != null">
+                    shieldingAnswerContent = #{shieldingAnswerContent},
+                </if>
+                <if test="answerContent != null">
+                    answerContent = #{answerContent},
+                </if>
+                <if test="startDate != null and endDate != null and startDate !='' and endDate !='' ">
+                    AND na.createTime > #{startDate} AND na.createTime &lt; #{endDate}
+                </if>
+                <if test="startDate != null and startDate !='' ">
+                    AND na.createTime > #{startDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND na.createTime &lt; #{endDate}
+                </if>
+
+                <if test="answerState == 1">
+                    AND na.deleted = 1
+                </if>
+
+                <if test="answerState == 0 ">
+                    AND na.deleted = 0
+                </if>
+                <if test="keyword != null">
+                    and (q.questionTitle like #{keyword} or u.phone like #{keyword})
+
+                </if>
+
+            </trim>
+        </where>
+    </sql>
+
+    <sql id="base_column">
+        na.id,
+        na.userID,
+        na.questionID,
+        na.praise,
+        na.answerContent,
+        na.createTime,
+        na.commentNum,
+        ac.nickName,
+        ac.phone,
+    </sql>
+
+    <select id="queryAnswerList" parameterType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerDTO" resultType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerVO">
+        SELECT
+        <trim suffixOverrides=","><include refid="base_column"/></trim>
+        FROM nerc_answer na
+        LEFT JOIN acc_user ac
+        ON ac.userID = na.userID
+        WHERE na.questionID = #{questionID}
+        AND na.deleted = 0
+        AND ac.deleted = 0
+        <if test="dateSort!=null and dateSort">
+            ORDER BY na.createTime ASC
+        </if>
+        <if test="dateSort!=null and !dateSort">
+            ORDER BY na.createTime DESC
+        </if>
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+    <update id="shielding" parameterType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerVO">
+        update nerc_answer
+        <include refid="Update_Set_Clause"/>
+        where id = #{id}
+    </update>
+
+    <!--管理员查询回答列表总数-->
+    <select id="queryAdminAnswerCount" parameterType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerDTO" resultType="java.lang.Integer">
+        SELECT count(na.id)
+        FROM nerc_answer na left join nerc_question q on na.questionId=q.id left join conf_quest_type ty on q.questionTypeID=ty.id left join acc_user u on na.userId = u.userid
+        <include refid="Example_Where_Clause" />
+
+    </select>
+
+
+    <!--管理员根据开始时间 结束时间 回答状态 关键字搜索查询回答列表-->
+    <select id="queryAdminAnswerList" parameterType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerDTO" resultType="com.bjnlmf.nerc.zhihu.pojo.answer.AnswerVO">
+        SELECT na.id,na.userID,na.answerContent,na.commentNum,na.createTime,na.deleted,q.questionTitle,ty.classify,u.phone
+        FROM nerc_answer na left join nerc_question q on na.questionId=q.id left join conf_quest_type ty on q.questionTypeID=ty.id left join acc_user u on na.userId = u.userId
+        <include refid="Example_Where_Clause" />
+        ORDER BY na.createTime
+        DESC
+        <if test="rowStart != null and pageSize != null ">
+            limit #{rowStart} , #{pageSize}
+        </if>
+    </select>
+
+</mapper>
